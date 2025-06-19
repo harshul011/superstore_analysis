@@ -1,0 +1,52 @@
+# Intern id - 217256251
+
+
+import pandas as pd
+import pylab as pl
+from statsmodels.tsa.seasonal import seasonal_decompose
+import matplotlib.pyplot as plt
+import statsmodels.api as sm
+
+df=pd.read_csv(r"C:\Users\DELL\Downloads\archive\Sample - Superstore.csv" , encoding="latin1")
+pd.set_option("display.width",None)
+print(df.isna().sum())
+print(df.info())
+df["Order Date"]=pd.to_datetime(df["Order Date"])
+df.set_index("Order Date",inplace=True)
+print(df.head())
+df=df.resample("ME").sum()
+monthly_sales=df["Sales"].rolling(window=3).mean().to_frame(name="Sales")
+print("montly sales  after smoothing out fluctuations ",monthly_sales)
+
+monthly_sales.dropna(inplace=True)
+#graph showing sales from 2014 to 2017 after fluctuations are smoothed out
+plt.grid(True)
+pl.title("Quaterly sales : ")
+plt.plot(monthly_sales)
+plt.show()
+
+# graph showing seasonal decompose
+decompose = seasonal_decompose(monthly_sales,model="multiplicative", period=12)
+plt.grid(True)
+plt.title("trends seasonality and anomalies:")
+plt.legend()
+decompose.plot()
+plt.show()
+
+monthly_sales["numbering"]=range(1,len(monthly_sales)+1)
+x=sm.add_constant(monthly_sales["numbering"])
+y=monthly_sales["Sales"]
+model=sm.OLS(y,x).fit()
+monthly_sales["Predicted"]=model.predict(x)
+monthly_sales["Residual"] = monthly_sales["Sales"] - monthly_sales["Predicted"]
+std = monthly_sales["Residual"].std()
+monthly_sales["Anomaly"] = abs(monthly_sales["Residual"]) > 2.5 * std
+print(monthly_sales)
+plt.figure(figsize=(12, 6))
+plt.plot(monthly_sales.index, monthly_sales["Sales"], label="Actual Sales", color="blue")
+plt.plot(monthly_sales.index, monthly_sales["Predicted"], label="Trend", color="orange", linestyle="--")
+
+plt.plot(monthly_sales.index, monthly_sales["Anomaly"], label="Trend", color="red", linestyle="dashed")
+plt.show()
+
+
